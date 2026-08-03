@@ -201,7 +201,15 @@ printf '%s\n' 'Cloudflare zone authentication verified'
 
 Expected: verification message with credentials hidden.
 
-- [ ] **Step 3: Verify Wrangler authentication**
+- [ ] **Step 3: Enable the task-local Workerd runtime**
+
+```bash
+export LD_LIBRARY_PATH=/docker/.worktrees/bolt-diy-production/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic/root/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+```
+
+Expected: later Workerd, Miniflare, and Wrangler commands can resolve `libatomic.so.1` in a fresh shell.
+
+- [ ] **Step 4: Verify Wrangler authentication**
 
 ```bash
 corepack pnpm exec wrangler whoami
@@ -209,7 +217,7 @@ corepack pnpm exec wrangler whoami
 
 Expected: Wrangler identifies the account and exits `0`.
 
-- [ ] **Step 4: Confirm Pages project name is unused**
+- [ ] **Step 5: Confirm Pages project name is unused**
 
 ```bash
 projects_json="$(curl -fsS \
@@ -223,7 +231,7 @@ test "$project_count" -eq 0
 
 Expected: count `0`; any existing project blocks deployment pending review.
 
-- [ ] **Step 5: Confirm hostname has no conflicting DNS record**
+- [ ] **Step 6: Confirm hostname has no conflicting DNS record**
 
 ```bash
 dns_json="$(curl -fsS --get \
@@ -245,7 +253,15 @@ Expected: no record; any existing record blocks automatic association pending re
 - Consumes: verified artifacts and authenticated Cloudflare process variables.
 - Produces: immutable deployment at `https://bolt-diy-rilan.pages.dev`.
 
-- [ ] **Step 1: Create direct-upload project**
+- [ ] **Step 1: Enable the task-local Workerd runtime**
+
+```bash
+export LD_LIBRARY_PATH=/docker/.worktrees/bolt-diy-production/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic/root/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+```
+
+Expected: Wrangler can resolve the verified task-local `libatomic.so.1` dependency in a fresh shell.
+
+- [ ] **Step 2: Create direct-upload project**
 
 ```bash
 corepack pnpm exec wrangler pages project create bolt-diy-rilan --production-branch stable
@@ -253,7 +269,7 @@ corepack pnpm exec wrangler pages project create bolt-diy-rilan --production-bra
 
 Expected: project created with production branch `stable`.
 
-- [ ] **Step 2: Upload verified artifacts**
+- [ ] **Step 3: Upload verified artifacts**
 
 ```bash
 corepack pnpm exec wrangler pages deploy ./build/client \
@@ -265,7 +281,7 @@ corepack pnpm exec wrangler pages deploy ./build/client \
 
 Expected: Wrangler returns a deployment URL and `https://bolt-diy-rilan.pages.dev`.
 
-- [ ] **Step 3: Verify the Pages URL before DNS change**
+- [ ] **Step 4: Verify the Pages URL before DNS change**
 
 ```bash
 curl --fail --silent --show-error --location \
