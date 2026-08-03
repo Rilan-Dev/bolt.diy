@@ -1,0 +1,33 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "agent/production-deployment-docs",
+    "gh-pages",
+    "leex279-patch-readme-changes-v1",
+    "main",
+    "revert-1335-diff-view-v2",
+    "revert-1725-fix/docker-oom",
+    "stable",
+    "update-docs"
+  ],
+  "parent": {
+    "agent/production-deployment-docs": "main",
+    "gh-pages": "main",
+    "leex279-patch-readme-changes-v1": "main",
+    "main": null,
+    "revert-1335-diff-view-v2": "main",
+    "revert-1725-fix/docker-oom": "main",
+    "stable": "main",
+    "update-docs": "main"
+  },
+  "order": [
+    "main",
+    "agent/production-deployment-docs",
+    "gh-pages",
+    "leex279-patch-readme-changes-v1",
+    "revert-1335-diff-view-v2",
+    "revert-1725-fix/docker-oom",
+    "stable",
+    "update-docs"
+  ]
+}

@@ -146,6 +146,51 @@ git status --short
 
 Expected: no environment file in `build` and no tracked application modification.
 
+- [ ] **Step 8: Provide a package-verified task-local `libatomic` fallback when needed**
+
+Run this only when the host cannot resolve `libatomic.so.1`. It writes solely
+under this plan's ignored SDD workspace and does not install or modify host
+packages. The RPM signature and all RPM digests are verified before extraction;
+the queried package identity also asserts the official AlmaLinux `libatomic`
+`x86_64` package. `tailscale-stable` is the only repository disabled because
+it is known to be broken in this environment.
+
+```bash
+if ! ldconfig -p 2>/dev/null | grep -q 'libatomic\.so\.1'; then
+(
+  set -e
+  repo_root="$(git rev-parse --show-toplevel)"
+  runtime_dir="$repo_root/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic"
+  rpm_dir="$runtime_dir/rpms"
+  extract_root="$runtime_dir/root"
+  mkdir -p "$rpm_dir" "$extract_root"
+
+  dnf download --disablerepo=tailscale-stable --destdir "$rpm_dir" libatomic.x86_64
+  rpm_file="$(find "$rpm_dir" -maxdepth 1 -type f -name 'libatomic-*.x86_64.rpm' -printf '%f\n' | LC_ALL=C sort -V | tail -n 1)"
+  test -n "$rpm_file"
+  rpm_file="$rpm_dir/$rpm_file"
+  rpm --checksig --verbose "$rpm_file"
+  test "$(rpm -qp --qf '%{NAME} %{ARCH} %{VENDOR}\n' "$rpm_file")" = 'libatomic x86_64 AlmaLinux'
+  rpm2cpio "$rpm_file" | (cd "$extract_root" && cpio -idm --quiet)
+
+  libatomic_dir="$extract_root/usr/lib64"
+  test -r "$libatomic_dir/libatomic.so.1"
+  export LD_LIBRARY_PATH="$libatomic_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  workerd_bin="$(find node_modules/.pnpm -path '*/@cloudflare+workerd-linux-64@*/node_modules/@cloudflare/workerd-linux-64/bin/workerd' -type f -print -quit)"
+  test -x "$workerd_bin"
+  ldd "$workerd_bin" | grep -F 'libatomic.so.1 =>'
+  "$workerd_bin" --version
+)
+fi
+```
+
+Expected: if the host is missing the library, `dnf download` completes with
+only `tailscale-stable` disabled, `rpm --checksig --verbose` reports valid
+signatures and digests, the package query returns `libatomic x86_64 AlmaLinux`,
+and `ldd` plus Workerd resolve and run through the task-local `usr/lib64`
+directory. If the host already resolves `libatomic.so.1`, the block makes no
+change.
+
 ### Task 3: Validate Cloudflare authentication and targets
 
 **Files:** Read `/docker/NexaHub/apps/server/.env`; modify none.
@@ -204,7 +249,8 @@ Expected: verification message with credentials hidden.
 - [ ] **Step 3: Enable the task-local Workerd runtime**
 
 ```bash
-export LD_LIBRARY_PATH=/docker/.worktrees/bolt-diy-production/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic/root/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+repo_root="$(git rev-parse --show-toplevel)"
+export LD_LIBRARY_PATH="$repo_root/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic/root/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 ```
 
 Expected: later Workerd, Miniflare, and Wrangler commands can resolve `libatomic.so.1` in a fresh shell.
@@ -256,7 +302,8 @@ Expected: no record; any existing record blocks automatic association pending re
 - [ ] **Step 1: Enable the task-local Workerd runtime**
 
 ```bash
-export LD_LIBRARY_PATH=/docker/.worktrees/bolt-diy-production/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic/root/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+repo_root="$(git rev-parse --show-toplevel)"
+export LD_LIBRARY_PATH="$repo_root/.superpowers/sdd/2026-08-04-bolt-diy-production-deployment/runtime-libatomic/root/usr/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 ```
 
 Expected: Wrangler can resolve the verified task-local `libatomic.so.1` dependency in a fresh shell.
